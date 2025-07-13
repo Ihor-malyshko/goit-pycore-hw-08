@@ -1,9 +1,21 @@
-import datetime
+import pickle
 from colorama import init, Fore
 from input_error import input_error
 from AddressBook import AddressBook, Record
+from deepdiff import DeepDiff
 
 init()
+
+def save_data(book, filename="addressbook.pkl"):
+    with open(filename, "wb") as f:
+        pickle.dump(book, f)
+
+def load_data(filename="addressbook.pkl"):
+    try:
+        with open(filename, "rb") as f:
+            return pickle.load(f)
+    except FileNotFoundError:
+        return AddressBook()  # Повернення нової адресної книги, якщо файл не знайдено
 
 def parse_input():
     user_input = input("Enter a command: ")
@@ -39,11 +51,8 @@ def change_contact(args, book):
     phone = args[1]
     new_phone = args[2]
     record = book.find(name)
-    print(f"Changing contact {name} phone from {phone} to {new_phone}.")
-    
     if record is None:
         return f"{Fore.RED}Error{Fore.RESET}: Contact '{name}' not found."
-    print(f"{record}")
     try:
         record.edit_phone(phone, new_phone)
     except ValueError as e:
@@ -57,7 +66,6 @@ def delete_contact(args, book):
     if record is None:
         return f"{Fore.RED}Error{Fore.RESET}: Contact '{name}' not found."
     else:
-        print(f"Deleting contact {name}.")
         book.delete(name)
         return f"Contact '{name}' {Fore.MAGENTA}deleted{Fore.RESET}."
 
@@ -102,7 +110,9 @@ def show_contacts(book):
 def main():
     print("Welcome to the assistant bot!")
     # read file
-    book = AddressBook()
+    # book = AddressBook()
+    book = load_data()
+    print(show_contacts(book))
     while True:
         command, args = parse_input()
         
@@ -111,6 +121,7 @@ def main():
             
         if command in ["close", "exit"]:
             # save contacts
+            save_data(book)
             print("Good bye!")
             break
         elif command == "hello":
@@ -135,48 +146,71 @@ def main():
             print("Invalid command.")
 
 
-def test_bot():
+def test_bot(type="test"):
     # Test the bot functionality
     book = AddressBook()
-    print(f"{Fore.CYAN}Test 1{Fore.RESET} first contact")
+    if type == "test":
+      print(f"{Fore.CYAN}Test 1{Fore.RESET} first contact")
+      
+    add_contact(["Alice", "1234567890"], book)
+    show_contacts(book)
+    add_birthday(["Alice", "09.07.2000"], book)
+    add_contact(["Alice", "5555555555"], book)
+    change_contact(["Alice", "5555555555", '2222222222'], book)
     
-    print(add_contact(["Alice", "1234567890"], book))
-    print(show_contacts(book))
-    print(add_birthday(["Alice", "09.07.2000"], book))
-    print(add_contact(["Alice", "5555555555"], book))
-    print(change_contact(["Alice", "5555555555", '2222222222'], book))
-    print(f"{Fore.CYAN}show Alice{Fore.RESET}")
-    print(show_contact(["Alice"], book))
-    print(f"{Fore.CYAN}show book{Fore.RESET}")
-    print(show_contacts(book))
+    if type == "test":
+      print(f"{Fore.CYAN}Test 2{Fore.RESET} second and third contact")
+    add_contact(["Bob", "1111111111"], book)
+    add_birthday(["Bob", "12.07.2000"], book)
+    add_contact(["Tom", "2222222222"], book)
+    add_birthday(["Tom", "13.07.2000"], book)
+    show_contacts(book)
     
-    
-    print('==' * 20)
-    print(f"{Fore.CYAN}Test 2{Fore.RESET} second and third contact")
-    print(add_contact(["Bob", "1111111111"], book))
-    print(add_birthday(["Bob", "12.07.2000"], book))
-    print(add_contact(["Tom", "2222222222"], book))
-    print(add_birthday(["Tom", "13.07.2000"], book))
-    print(show_contacts(book))
-    print('==' * 20)
-    print(f"{Fore.CYAN}Test 3{Fore.RESET} birthday show")
-    print(add_contact(["15-07", "3333333333"], book))
-    print(add_birthday(["15-07", "15.07.2000"], book))
-    print(add_contact(["19-07", "4444444444"], book))
-    print(add_birthday(["19-07", "19.07.2000"], book))
-    print(birthdays(book))
+    if type == "test":
+      print(f"{Fore.CYAN}Test 3{Fore.RESET} birthday show")
+    add_contact(["15-07", "3333333333"], book)
+    add_birthday(["15-07", "15.07.2000"], book)
+    add_contact(["19-07", "4444444444"], book)
+    add_birthday(["19-07", "19.07.2000"], book)
+    if type == "test":
+      print(birthdays(book))
 
-
-    print(f"{Fore.CYAN}Test 4{Fore.RESET} delete contact")
-    print(delete_contact(["Alice"], book))
-    print(f"{Fore.CYAN}show Alice{Fore.RESET} after delete")
-    print(show_contact(["Alice"], book))
-    print(f"{Fore.CYAN}show book{Fore.RESET} after delete")
-    print(show_contacts(book))
+    if type == "test":
+      print(f"{Fore.CYAN}Test 4{Fore.RESET} delete contact")
+      delete_contact(["Alice"], book)
     
-    print('==' * 20)
-    print(f"{Fore.GREEN}All tests passed.{Fore.RESET}")
+    if type == "test":
+      # update the file with test book data
+      # save_data(book, "test_data.pkl")
+      
+      # Test data loading from file
+      loaded_book = load_data("test_data.pkl")
+      diff = DeepDiff(book.data, loaded_book.data, ignore_order=True)
+      if not diff:
+        print(f"{Fore.GREEN}All tests passed.{Fore.RESET}")
+      else:
+        print(f"{Fore.RED}File test failed.{Fore.RESET}")
+        print(f"Differences: {diff}")
+    
+    return book
+    
+def test_file():
+    # використаемо функцію test_bot для генерації даних
+    book = test_bot('generate book')
+    # Test file saving and loading
+    print(f"{Fore.CYAN}Test 5{Fore.RESET} save and load")
+    save_data(book, "test_book.pkl")
+
+    loaded_book = load_data("test_book.pkl")
+    # Використання DeepDiff для глибокого порівняння
+    diff = DeepDiff(book.data, loaded_book.data, ignore_order=True)
+    if not diff:
+        print(f"{Fore.GREEN}File test passed.{Fore.RESET}")
+    else:
+        print(f"{Fore.RED}File test failed.{Fore.RESET}")
+        print(f"Differences: {diff}")
 
 if __name__ == "__main__":
     test_bot()
+    test_file()
     main()

@@ -54,7 +54,6 @@ class Record:
             print(e)
             return False
     def edit_phone(self, old_phone, new_phone):
-        print(f"Editing phone {old_phone} to {new_phone} for contact {self.name.value}.")
         for i, p in enumerate(self.phones):
             if p.value == old_phone:
                 self.phones[i] = Phone(new_phone)
